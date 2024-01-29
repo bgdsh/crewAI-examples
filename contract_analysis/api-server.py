@@ -14,9 +14,10 @@ async def ask(question: str):
 @app.post("sessions/{session_id}/ask")
 async def ask(req: Request, question: str, session_id: str):
     # MOCK for now
-    history_messages = req.state.session_messages[session_id]
+    session = req.state.sessions[session_id]
     model = OpenAI()
-    answer = model.ask(question, history_messages)
+    # TODO: for a very long chat, shorten the messages with MemGpt
+    answer = model.ask(question, session.messages)
     return answer
 
 

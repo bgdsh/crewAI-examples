@@ -14,6 +14,18 @@
 		},
 		{
 			"path": "contract_analysis"
+		},
+		{
+			"path": "starter_template"
+		},
+		{
+			"path": "screenplay_writer"
+		},
+		{
+			"path": "markdown_validator"
+		},
+		{
+			"path": "azure_model"
 		}
 	],
 	"settings": {}

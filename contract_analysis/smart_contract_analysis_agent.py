@@ -14,7 +14,7 @@ class SmartContractAnalysisAgents():
       goal="""Impress all customers with your crypto currency data 
       and market trends analysis""",
       backstory="""The most seasoned crypto currency analyst with 
-      lots of expertise in stock market analysis and investment
+      lots of expertise in crypto currency market analysis and investment
       strategies that is working for a super important customer.""",
       verbose=True,
       tools=[
@@ -65,9 +65,9 @@ class SmartContractAnalysisAgents():
       ]
     )
 
-  def smart_contract_analyst(self):
+  def smart_contract_expert(self):
     return Agent(
-      role="Smart Contract Code Analyst",
+      role="Smart Contract Expert",
       goal="Analyse the smart contract code and find any vulnerabilities / bugs and other uncommon patterns",
       backstory="""You're the most experienced smart contract developer and you combine various security incidents to formulate
       the audit report that list all the vulnerabilities / bugs and other uncommon patterns. You are now working for

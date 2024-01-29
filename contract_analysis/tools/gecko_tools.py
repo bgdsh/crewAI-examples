@@ -3,107 +3,72 @@ import os
 import requests
 
 from langchain.tools import tool
-from langchain.text_splitter import CharacterTextSplitter
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
 
-from sec_api import QueryApi
 from unstructured.partition.html import partition_html
 
 class CoinGeckoTools():
-  # Placeholder for now
-  @tool("Search 10-Q form")
-  def search_10q(data):
-    """
-    Useful to search information from the latest 10-Q form for a
-    given stock.
-    The input to this tool should be a pipe (|) separated text of 
-    length two, representing the stock ticker you are interested, what
-    question you have from it.
-		For example, `AAPL|what was last quarter's revenue`.
-    """
-    stock, ask = data.split("|")
-    queryApi = QueryApi(api_key=os.environ['SEC_API_API_KEY'])
-    query = {
-      "query": { 
-        "query_string": {
-          "query": f"ticker:{stock} AND formType:\"10-Q\""
-        } 
-      },
-      "from": "0",
-      "size": "1",
-      "sort": [{ "filedAt": { "order": "desc" }}]
-    }
-
-    filings = queryApi.get_filings(query)['filings']
-    link = filings[0]['linkToFilingDetails']    
-    answer = SECTools.__embedding_search(link, ask)
-    return answer
-
-  @tool("Search 10-K form")
-  def search_10k(data):
-    """
-    Useful to search information from the latest 10-K form for a
-    given stock.
-    The input to this tool should be a pipe (|) separated text of 
-    length two, representing the stock ticker you are interested, what
-    question you have from it.
-    For example, `AAPL|what was last year's revenue`.
-    """
-    stock, ask = data.split("|")
-    queryApi = QueryApi(api_key=os.environ['SEC_API_API_KEY'])
-    query = {
-      "query": { 
-        "query_string": {
-          "query": f"ticker:{stock} AND formType:\"10-K\""
-        } 
-      },
-      "from": "0",
-      "size": "1",
-      "sort": [{ "filedAt": { "order": "desc" }}]
-    }
-
-    filings = queryApi.get_filings(query)['filings']
-    link = filings[0]['linkToFilingDetails']
-    answer = SECTools.__embedding_search(link, ask)
-    return answer
-  
-  def __embedding_search(url, ask):
-    text = SECTools.__download_form_html(url)
-    elements = partition_html(text=text)
-    content = "\n".join([str(el) for el in elements])
-    text_splitter = CharacterTextSplitter(
-        separator = "\n",
-        chunk_size = 1000,
-        chunk_overlap  = 150,
-        length_function = len,
-        is_separator_regex = False,
-    )
-    docs = text_splitter.create_documents([content])
-    retriever = FAISS.from_documents(
-      docs, OpenAIEmbeddings()
-    ).as_retriever()
-    answers = retriever.get_relevant_documents(ask, top_k=4)
-    answers = "\n\n".join([a.page_content for a in answers])
-    return answers
-
-  def __download_form_html(url):    
-    headers = {
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7',
-      'Cache-Control': 'max-age=0',
-      'Dnt': '1',
-      'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120"',
-      'Sec-Ch-Ua-Mobile': '?0',
-      'Sec-Ch-Ua-Platform': '"macOS"',
-      'Sec-Fetch-Dest': 'document',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'none',
-      'Sec-Fetch-User': '?1',
-      'Upgrade-Insecure-Requests': '1',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    }
-
-    response = requests.get(url, headers=headers)
-    return response.text
+    @tool("Search Crypto Currency By Keyword")
+    def search_crypto_currency_by_keyword(keyword):
+        """
+        Useful to search crypto currency by keyword.
+        """
+        url = f"https://api.coingecko.com/api/v3/search?query={keyword}"
+        response = requests.request("GET", url)
+        res_body = response.json()['coins']
+        string = []
+        for result in res_body:
+            try:
+                string.append('\n'.join([
+                    f"CoinGecko Id: {result['id']}",
+                    f"Name: {result['name']}", 
+                    f"Symbol: {result['symbol']}",
+                    f"Market Cap Rank: {result['market_cap_rank']}",
+                    "\n-----------------"
+                ]))
+            except KeyError:
+                next
+        return '\n'.join(string)
+    
+    @tool("Get Crypto Currency Details by CoinGecko ID")
+    def get_crypto_details_by_id(id):
+        """
+        Useful to get crypto details by id.
+        """
+        url = f"https://api.coingecko.com/api/v3/coins/{id}"
+        response = requests.request("GET", url)
+        res_body = response.json()
+        string = []
+        try:
+            string.append('\n'.join([
+                f"CoinGecko Id: {res_body['id']}",
+                f"Name: {res_body['name']}", 
+                f"Symbol: {res_body['symbol']}",
+                f"Market Cap Rank: {res_body['market_cap_rank']}",
+                # f"Hashing Algorithm: {res_body['hashing_algorithm']}",
+                f"Market Data: {res_body['market_data']}",
+                f"Description: {res_body['description']['en']}",
+                f"Categories: {','.join(res_body['categories'])}",
+                f"Contract Address: {res_body['contract_address']}",
+                f"Homepage: {','.join(res_body['links']['homepage'])}",
+                f"Tiwtter: {res_body['links']['twitter_screen_name']}",
+                f"Blockchain Site: {','.join(res_body['links']['blockchain_site'])}",
+                f"Current Price: {res_body['market_data']['current_price']['usd']}",
+                f"High 24h: {res_body['market_data']['high_24h']['usd']}",
+                f"Low 24h: {res_body['market_data']['low_24h']['usd']}",
+                f"All Time High: {res_body['market_data']['ath']['usd']}@{res_body['market_data']['ath_date']['usd']}",
+                f"All Time Low: {res_body['market_data']['atl']['usd']}@{res_body['market_data']['atl_date']['usd']}",
+                f"Total Supply: {res_body['market_data']['total_supply']}",
+                f"Max Supply: {res_body['market_data']['max_supply']}",
+                f"Circulating Supply: {res_body['market_data']['circulating_supply']}",
+                f"Market Cap: {res_body['market_data']['market_cap']['usd']}",
+                f"Total Value Locked: {res_body['market_data']['total_value_locked']['usd']}",
+                f"Last Updated: {res_body['last_updated']}",
+            ]))
+            platforms = []
+            for platform, contract in res_body['platforms'].items():
+                platforms.append(f"{platform} address: {contract}")
+            string.append('\n'.join(platforms))
+        except KeyError:
+            next
+        return '\n'.join(string)
+        
